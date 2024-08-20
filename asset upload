@@ -1,0 +1,22 @@
+@Reference
+	ResourceResolverFactory resourceResolverFactory;
+	@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+		response.setHeader("Content-Type", "text/html");
+		PrintWriter pw = response.getWriter();
+		pw.write("Reading image from desktop and injecting image to JCR DAM");
+		try {
+			RequestParameter requestParameter = request.getRequestParameter("imageFile");
+			pw.write(requestParameter.toString());
+			InputStream fileInputStream=requestParameter.getInputStream();
+			ResourceResolver r = request.getResourceResolver();
+			ResourceResolver resourceResolver=loginAsServiceUser();
+            Session session=resourceResolver.adaptTo(Session.class);
+            AssetManager assetManager=resourceResolver.adaptTo(AssetManager.class);
+            String damPath="/content/dam/SampleProject/";
+            assetManager.createAsset(damPath+"img"+"myimage2",fileInputStream,"image/jpeg", true);
+            response.getWriter().write("images are uploaded");
+		} catch (Exception e) {
+			pw.write(e.getMessage());
+		}
+	}

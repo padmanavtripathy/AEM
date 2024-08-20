@@ -1,0 +1,64 @@
+package com.SampleProject.core.servlets;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.jcr.LoginException;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
+@SuppressWarnings("serial")
+@Component(service=Servlet.class,
+property={
+        "sling.servlet.methods=" + HttpConstants.METHOD_GET,
+        "sling.servlet.paths="+ "/bin/getpath/v1",
+        "sling.servlet.extensions=" + "txt"
+})
+public class MyContentNodeServlet extends SlingAllMethodsServlet implements Servlet {
+
+	@Reference
+	private ResourceResolverFactory resourceResolverFactory;
+	private ResourceResolver loginAsServiceUser() throws LoginException, org.apache.sling.api.resource.LoginException {
+
+    	Map<String, Object> authInfo = new HashMap<String,Object>();
+ 	    authInfo.put(ResourceResolverFactory.SUBSERVICE, "test");
+ 	    @SuppressWarnings("unused")
+		ResourceResolver resourceResolver=null;   	 
+ 	    return resourceResolver = resourceResolverFactory.getServiceResourceResolver(authInfo);		
+	}
+
+	Session session=null;
+	@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
+	    try {
+	    	ResourceResolver resourceResolver=loginAsServiceUser();
+	    	
+	 	    session=resourceResolver.adaptTo(Session.class);
+	        String parentNodePath = request.getParameter("path");
+	        String nodeName = request.getParameter("nodename"); 
+	        Node parentNode = resourceResolver.getResource(parentNodePath).adaptTo(Node.class);
+	        Node newNode = parentNode.addNode(nodeName,"nt:unstructured");
+	        newNode.setProperty("name", request.getParameter("name"));
+	        resourceResolver.commit();
+	        session.save();
+	    } catch (LoginException e) {
+	       e.printStackTrace();
+	    } catch (RepositoryException e) {
+	        e.printStackTrace();
+	    } catch (org.apache.sling.api.resource.LoginException e) {
+			e.printStackTrace();
+		} 
+	    
+	}
+}

@@ -1,0 +1,35 @@
+public void updateContentFragment(Coments coments, String contentLocation) throws LoginException, org.apache.sling.api.resource.LoginException {
+		try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+			ContentFragment contentFragment = resourceResolver.getResource(contentLocation)
+					.adaptTo(ContentFragment.class);
+			Iterator<ContentElement> iterator = contentFragment.getElements();
+			while (iterator.hasNext()) {
+				ContentElement element = iterator.next();
+				switch (element.getName()) {
+				case "id":
+					element.setContent(coments.getId(), "id");
+					break;
+				case "postId":
+					element.setContent(coments.getPostId(), "postId");
+					break;
+				case "name":
+					element.setContent(coments.getName(), "name");
+					break;
+				case "email":
+					element.setContent(coments.getEmail(), "email");
+					break;
+				case "body":
+					element.setContent(coments.getBody(), "body");
+					break;
+				default:
+					break;
+				}
+
+			}
+			resourceResolver.commit();
+		} catch (ContentFragmentException e) {
+		} catch (PersistenceException e) {
+			e.printStackTrace();
+		}
+
+	}

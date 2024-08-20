@@ -1,0 +1,44 @@
+public void createComentContentfragment(Coments coments, String foldername) throws IOException {
+		try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+			Resource templateResc = resourceResolver.resolve("/conf/BlissProject/settings/dam/cfm/models/coments");
+			Resource cfParentResc = resourceResolver.resolve("/content/dam/BlissProject/comments/folder-" + foldername);
+			if (templateResc != null && cfParentResc != null) {
+				try {
+					FragmentTemplate fragmentTemplate = templateResc.adaptTo(FragmentTemplate.class);
+					ContentFragment contentFragment = fragmentTemplate.createFragment(cfParentResc, coments.getId(),
+							coments.getId());
+					Iterator<ContentElement> iterator = contentFragment.getElements();
+					while (iterator.hasNext()) {
+						ContentElement element = iterator.next();
+						switch (element.getName()) {
+						case "id":
+							element.setContent(coments.getId(), "id");
+							break;
+						case "postId":
+							element.setContent(coments.getPostId(), "postId");
+							break;
+						case "name":
+							element.setContent(coments.getName(), "name");
+							break;
+						case "email":
+							element.setContent(coments.getEmail(), "email");
+							break;
+						case "body":
+							element.setContent(coments.getBody(), "body");
+							break;
+						default:
+							break;
+						}
+
+					}
+					resourceResolver.commit();
+				} catch (ContentFragmentException e) {
+				}
+			}
+
+		} catch (LoginException e1) {
+			e1.printStackTrace();
+		} catch (org.apache.sling.api.resource.LoginException e1) {
+		}
+	}
+

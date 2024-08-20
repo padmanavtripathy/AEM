@@ -1,0 +1,48 @@
+	@Reference
+	ResourceResolverFactory resourceResolverFactory;
+	@SuppressWarnings({ "null", "unused", "deprecation" })
+	@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse responses)
+			throws ServletException, IOException {
+		 String apiUrl = "https://picsum.photos/v2/list";
+
+	        HttpClient httpClient = HttpClientBuilder.create().build();
+	        HttpGet httpGet = new HttpGet(apiUrl);
+
+	        try {
+	            HttpResponse response = httpClient.execute(httpGet);
+	            HttpEntity entity = response.getEntity();
+	            String responseString = EntityUtils.toString(entity);
+	            JSONObject jsonResponse = new JSONObject(responseString);
+	            JSONArray users = jsonResponse.getJSONArray("url");
+	            for (int i = 0; i < users.length(); i++) {
+	                JSONObject user = users.getJSONObject(i);
+	                String avatarUrl = user.getString("avatar");
+	                HttpClient httpClient123 = HttpClientBuilder.create().build();
+	    	        HttpGet httpGet12 = new HttpGet(avatarUrl);
+	    	        HttpResponse response12 = httpClient.execute(httpGet12);
+	    	      
+	    	        InputStream is=response12.getEntity().getContent();
+	                System.out.println("Avatar URL: " + avatarUrl);
+	                ResourceResolver resourceResolver=loginAsServiceUser();
+	                Session session=resourceResolver.adaptTo(Session.class);
+	                AssetManager assetManager=resourceResolver.adaptTo(AssetManager.class);
+	                String damPath="/content/dam/SampleProject/";
+	                String name=avatarUrl.replace("https://reqres.in/img/faces/", "");
+	                assetManager.createAsset(damPath+name,is,"image/jpeg", true);
+	                responses.getWriter().write("Image "+name+" is uploaded\n");
+	            }
+	        } catch (IOException e) {
+	        	 responses.getWriter().write("Node is being not created1");
+	            e.printStackTrace();
+	        } catch (JSONException e) {
+	        	responses.getWriter().write("Node is being not created2");
+				e.printStackTrace();
+			} catch (LoginException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (org.apache.sling.api.resource.LoginException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+	}

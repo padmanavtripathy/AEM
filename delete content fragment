@@ -1,0 +1,17 @@
+@Reference
+	ResourceResolverFactory resourceResolverFactory;
+
+	@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse responses)
+			throws ServletException, IOException {
+		try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+			String foldername = String.valueOf(((Integer.parseInt(request.getParameter("postId"))) / 100) + 1);
+			String path="/content/dam/BlissProject/comments/folder-" + foldername + "/" + request.getParameter("postId");
+			Session session = resourceResolver.adaptTo(Session.class);
+			session.removeItem(path);
+			responses.getWriter().write("content fragment"+request.getParameter("postId")+" is deleted");
+			session.save();
+		} catch (Exception e) {
+			responses.getWriter().write("Error : "+e.getMessage());
+			e.printStackTrace();}
+	}

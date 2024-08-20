@@ -1,0 +1,8 @@
+private ResourceResolver loginAsServiceUser() throws LoginException, org.apache.sling.api.resource.LoginException {
+
+		Map<String, Object> authInfo = new HashMap<String, Object>();
+		authInfo.put(ResourceResolverFactory.SUBSERVICE, "test");
+		@SuppressWarnings("unused")
+		ResourceResolver resourceResolver = null;
+		return resourceResolver = resolverFactory.getServiceResourceResolver(authInfo);
+	}

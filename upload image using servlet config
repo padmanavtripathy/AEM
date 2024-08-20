@@ -1,0 +1,62 @@
+@Reference
+    private ConfigurationAdmin configAdmin;
+
+	@Reference 
+	DamApiService config;
+	@Reference
+	ResourceResolverFactory resourceResolverFactory;
+	@SuppressWarnings({ "null", "unused", "deprecation" })
+	@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse responses)
+			throws ServletException, IOException {
+		String path = config.ApiPath();
+		String accesskey = config.AccessKey();
+		responses.getWriter().write("hii welcome");
+		 
+		 String apiUrl = path+"?client_id="+accesskey;
+
+	        HttpClient httpClient = HttpClientBuilder.create().build();
+	        HttpGet httpGet = new HttpGet(apiUrl);
+
+	        try {
+	            HttpResponse response = httpClient.execute(httpGet);
+	            HttpEntity entity = response.getEntity();
+	            responses.getWriter().write("hii");
+	            String responseString = EntityUtils.toString(entity);
+	            JSONArray jsonArray = new JSONArray(responseString);
+	            int j=100;
+	            for (int i = 0; i < jsonArray.length(); i++) {
+	                JSONObject user = jsonArray.getJSONObject(i);
+	                JSONObject urls=user.getJSONObject("urls");
+	                responses.getWriter().write(urls.toString());
+	                responses.getWriter().write("\n=================one object ==============\n");
+	                String Url = urls.getString("full");
+//	                responses.getWriter().write(Url);
+	                j+=i;
+	    	        HttpGet httpGet12 = new HttpGet(Url);
+	    	        HttpResponse response12 = httpClient.execute(httpGet12);
+	    	      
+	    	        InputStream is=response12.getEntity().getContent();
+	                System.out.println("Avatar URL: " + Url);
+	                ResourceResolver resourceResolver=loginAsServiceUser();
+	                Session session=resourceResolver.adaptTo(Session.class);
+	                AssetManager assetManager=resourceResolver.adaptTo(AssetManager.class);
+	                String damPath="/content/dam/SampleProject/";
+	                assetManager.createAsset(damPath+"img"+j,is,"image/jpeg", true);
+	                responses.getWriter().write("images are uploaded");
+	                
+	            }
+	        } catch (IOException e) {
+	        	 responses.getWriter().write("Node is not created");
+	            e.printStackTrace();
+        } catch (JSONException e) {
+	        	responses.getWriter().write("Node is not created");
+				e.printStackTrace();
+			}  catch (org.apache.sling.api.resource.LoginException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (LoginException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+	}

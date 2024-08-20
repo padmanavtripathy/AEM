@@ -1,0 +1,17 @@
+public void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+		String status = "Workflow Executing";
+		Map<String, Object> authInfo = new HashMap<String, Object>();
+		authInfo.put(ResourceResolverFactory.SUBSERVICE, "test");
+		try {
+			ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(authInfo);
+			String payload = request.getParameter("page");
+			WorkflowSession workflowSession = resourceResolver.adaptTo(WorkflowSession.class);
+			WorkflowModel workflowModel = workflowSession.getModel("/var/workflow/models/homepage-");
+			WorkflowData workflowData = workflowSession.newWorkflowData("JCR_PATH", payload);
+			status = workflowSession.startWorkflow(workflowModel, workflowData).getState();
+			response.getWriter().write(status);
+		} catch (Exception e) {
+			response.getWriter().write("Enter valid page path");
+
+		}
+	}

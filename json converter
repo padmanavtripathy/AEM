@@ -1,0 +1,19 @@
+// Create a JSON object to hold the results
+            JsonObject jsonResponse = new JsonObject();
+            JsonArray resultsArray = new JsonArray();
+
+            // Add the paths to the JSON array
+            for (String path : pagePaths) {
+                resultsArray.add(path);
+            }
+
+            // Add the JSON array to the response object
+            jsonResponse.add("results", resultsArray);
+
+            // Set the response content type
+            response.setContentType("application/json");
+
+            // Write the JSON response to the output
+            PrintWriter writer = response.getWriter();
+            writer.print(jsonResponse.toString());
+            writer.flush();

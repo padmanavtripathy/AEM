@@ -1,0 +1,46 @@
+package com.SampleProject.core.servlets;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.Servlet;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
+import com.adobe.granite.workflow.WorkflowSession;
+import com.adobe.granite.workflow.exec.WorkflowData;
+import com.adobe.granite.workflow.model.WorkflowModel;
+
+@SuppressWarnings("serial")
+@Component(service = Servlet.class, property = { "sling.servlet.methods=" + HttpConstants.METHOD_GET,
+		"sling.servlet.paths=" + "/bin/getpath/v3", "sling.servlet.extensions=" + "txt" })
+public class ExecuteWorkflow extends SlingSafeMethodsServlet {
+	@Reference
+	private ResourceResolverFactory resourceResolverFactory;
+
+	public void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+		String status = "Workflow Executing";
+		Map<String, Object> authInfo = new HashMap<String, Object>();
+		authInfo.put(ResourceResolverFactory.SUBSERVICE, "test");
+		try {
+			ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(authInfo);
+			String payload = request.getParameter("page");
+			WorkflowSession workflowSession = resourceResolver.adaptTo(WorkflowSession.class);
+			WorkflowModel workflowModel = workflowSession.getModel("/var/workflow/models/homepage-");
+			WorkflowData workflowData = workflowSession.newWorkflowData("JCR_PATH", payload);
+			status = workflowSession.startWorkflow(workflowModel, workflowData).getState();
+			response.getWriter().write(status);
+		} catch (Exception e) {
+			response.getWriter().write("Enter valid page path");
+
+		}
+	}
+}

@@ -1,0 +1,60 @@
+package com.BlissProject.core.servlets;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.jcr.LoginException;
+import javax.lang.model.util.Elements;
+import javax.servlet.Servlet;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
+import com.BlissProject.core.Entity.Coments;
+import com.adobe.cq.dam.cfm.ContentElement;
+import com.adobe.cq.dam.cfm.ContentFragment;
+import com.adobe.cq.dam.cfm.ContentFragmentException;
+import com.adobe.cq.dam.cfm.FragmentTemplate;
+
+
+public boolean createFolder(String name) {
+		String folderPath = "/content/dam/BlissProject/comments/folder-" + name;
+		try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+			Resource folderResource = resourceResolver.getResource(folderPath);
+
+			if (folderResource == null) {
+				Resource parentResource = resourceResolver.getResource("/content/dam/BlissProject/comments");
+				if (parentResource != null) {
+					resourceResolver.create(parentResource, "folder-" + name, null);
+					resourceResolver.commit();
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				return true;
+			}
+		} catch (Exception e) {
+			return false;
+		}
+	}

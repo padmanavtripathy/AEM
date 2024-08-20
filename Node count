@@ -1,0 +1,32 @@
+@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
+			throws ServletException, IOException {
+		Map<String, Object> authInfo = new HashMap<String, Object>();
+		authInfo.put(ResourceResolverFactory.SUBSERVICE, "test");
+		String path = request.getParameter("path");
+		if (path != null && !path.isEmpty()) {
+			try {
+
+				ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(authInfo);
+				Session session = resourceResolver.adaptTo(Session.class);
+				Node node = session.getNode(path);
+				int count = countNodes(node);
+				response.getWriter().print("Number of Nodes: " + count);
+			} catch (RepositoryException | LoginException e) {
+				response.getWriter().print("Error occurred: " + e.getMessage());
+			}
+		} else {
+			response.getWriter().print("Please provide a valid path parameter");
+		}
+	}
+
+	private int countNodes(Node node) throws RepositoryException {
+		int count = 0;
+		javax.jcr.NodeIterator nodeIterator = node.getNodes();
+		while (nodeIterator.hasNext()) {
+			@SuppressWarnings("unused")
+			Node node1 = nodeIterator.nextNode();
+			count += 1;
+		}
+		return count;
+	}

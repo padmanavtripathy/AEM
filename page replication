@@ -1,0 +1,27 @@
+@Reference
+	private ResourceResolverFactory resolverFactory;
+
+	@Reference
+	private Replicator replicator;
+
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+		
+		try {
+			Map<String, Object> authInfo = new HashMap<String, Object>();
+			authInfo.put(ResourceResolverFactory.SUBSERVICE, "test");
+			ResourceResolver resourceResolver = resolverFactory.getServiceResourceResolver(authInfo);
+			String pagePath = request.getParameter("pagePath");
+			Resource pageResource = resourceResolver.getResource(pagePath);
+			if (pageResource != null) {
+				Session session = resourceResolver.adaptTo(Session.class);
+				replicator.replicate(session, ReplicationActionType.ACTIVATE, pagePath);
+				response.getWriter().println("Page replicated successfully.");
+				resourceResolver.commit();
+			} else {
+				response.getWriter().println("Invalid page path or page not found.");
+			}
+			resourceResolver.close();
+		} catch (Exception e) {
+			response.getWriter().println("An error occurred while replicating the page: " + e.getMessage());
+		}
+	}

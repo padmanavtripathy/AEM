@@ -1,0 +1,267 @@
+package com.BlissProject.core.servlets;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.jcr.LoginException;
+import javax.jcr.Session;
+import javax.lang.model.util.Elements;
+import javax.servlet.Servlet;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
+import com.BlissProject.core.Entity.Coments;
+import com.adobe.cq.dam.cfm.ContentElement;
+import com.adobe.cq.dam.cfm.ContentFragment;
+import com.adobe.cq.dam.cfm.ContentFragmentException;
+import com.adobe.cq.dam.cfm.FragmentTemplate;
+
+@SuppressWarnings("serial")
+@Component(service = Servlet.class, property = { "sling.servlet.methods=" + HttpConstants.METHOD_GET,
+		"sling.servlet.paths=" + "/apps/createfolder", "sling.servlet.extensions=" + "txt" })
+public class CreateContentFolderServlet extends SlingAllMethodsServlet {
+	@Reference
+	private ResourceResolverFactory resolverFactory;
+
+	@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+		List<Coments> fragments = parseData();
+		for (Coments coments : fragments) {
+			String foldername = String.valueOf(((Integer.parseInt(coments.getId())) / 100) + 1);
+			if (createFolder(foldername)) {
+				try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+					
+					 try { String contentLocation = "/content/dam/BlissProject/comments/folder-" +
+					 foldername + "/" + coments.getId(); Resource folderResource =
+					 resourceResolver.getResource(contentLocation);
+					  response.getWriter().write(folderResource.getName() + "already present" +
+					 "\n"); updateContentFragment(coments, contentLocation); } catch (Exception e)
+					  { createComentContentfragment(coments, foldername);
+					  response.getWriter().write(coments.getId() + "node is created" + "\n"); }
+					 
+					/*
+					 * response.getWriter().write(deleteCf(resourceResolver,
+					 * "/content/dam/BlissProject/comments/folder-6/500"));
+					 */
+				} catch (LoginException e) {
+					e.printStackTrace();
+				} catch (org.apache.sling.api.resource.LoginException e) {
+					e.printStackTrace();
+				}
+			}
+
+		}
+
+	}
+
+	@SuppressWarnings("unused")
+	private ResourceResolver loginAsServiceUser() throws LoginException, org.apache.sling.api.resource.LoginException {
+
+		Map<String, Object> authInfo = new HashMap<String, Object>();
+		authInfo.put(ResourceResolverFactory.SUBSERVICE, "test");
+		@SuppressWarnings("unused")
+		ResourceResolver resourceResolver = null;
+		return resourceResolver = resolverFactory.getServiceResourceResolver(authInfo);
+	}
+
+	public boolean createFolder(String name) {
+		String folderPath = "/content/dam/BlissProject/comments/folder-" + name;
+		try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+			Resource folderResource = resourceResolver.getResource(folderPath);
+
+			if (folderResource == null) {
+				Resource parentResource = resourceResolver.getResource("/content/dam/BlissProject/comments");
+				if (parentResource != null) {
+					resourceResolver.create(parentResource, "folder-" + name, null);
+					resourceResolver.commit();
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				return true;
+			}
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	public List<Coments> parseData() {
+		String apiUrl = "https://jsonplaceholder.typicode.com/comments";
+		List<Coments> coments = new ArrayList<>();
+		HttpClient httpClient = HttpClientBuilder.create().build();
+		HttpGet httpGet = new HttpGet(apiUrl);
+		try {
+			HttpResponse response = httpClient.execute(httpGet);
+			String responseBody = EntityUtils.toString(response.getEntity());
+			JSONArray array = new JSONArray(responseBody);
+
+			for (int i = 0; i < array.length(); i++) {
+				JSONObject object = array.getJSONObject(i);
+				coments.add(new Coments(object.get("postId").toString(), object.get("id").toString(),
+						object.get("name").toString(), object.get("email").toString(), object.get("body").toString()));
+			}
+		} catch (IOException | JSONException e) {
+			e.printStackTrace();
+		}
+		return coments;
+	}
+
+	public void createComentContentfragment(Coments coments, String foldername) throws IOException {
+		try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+			Resource templateResc = resourceResolver.resolve("/conf/BlissProject/settings/dam/cfm/models/coments");
+			Resource cfParentResc = resourceResolver.resolve("/content/dam/BlissProject/comments/folder-" + foldername);
+			if (templateResc != null && cfParentResc != null) {
+				try {
+					FragmentTemplate fragmentTemplate = templateResc.adaptTo(FragmentTemplate.class);
+					ContentFragment contentFragment = fragmentTemplate.createFragment(cfParentResc, coments.getId(),
+							coments.getId());
+					Iterator<ContentElement> iterator = contentFragment.getElements();
+					while (iterator.hasNext()) {
+						ContentElement element = iterator.next();
+						switch (element.getName()) {
+						case "id":
+							element.setContent(coments.getId(), "id");
+							break;
+						case "postId":
+							element.setContent(coments.getPostId(), "postId");
+							break;
+						case "name":
+							element.setContent(coments.getName(), "name");
+							break;
+						case "email":
+							element.setContent(coments.getEmail(), "email");
+							break;
+						case "body":
+							element.setContent(coments.getBody(), "body");
+							break;
+						default:
+							break;
+						}
+
+					}
+					resourceResolver.commit();
+				} catch (ContentFragmentException e) {
+				}
+			}
+
+		} catch (LoginException e1) {
+			e1.printStackTrace();
+		} catch (org.apache.sling.api.resource.LoginException e1) {
+		}
+	}
+
+	public void updateContentFragment(Coments coments, String contentLocation) throws LoginException, org.apache.sling.api.resource.LoginException {
+		try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+			ContentFragment contentFragment = resourceResolver.getResource(contentLocation)
+					.adaptTo(ContentFragment.class);
+			Iterator<ContentElement> iterator = contentFragment.getElements();
+			while (iterator.hasNext()) {
+				ContentElement element = iterator.next();
+				switch (element.getName()) {
+				case "id":
+					element.setContent(coments.getId(), "id");
+					break;
+				case "postId":
+					element.setContent(coments.getPostId(), "postId");
+					break;
+				case "name":
+					element.setContent(coments.getName(), "name");
+					break;
+				case "email":
+					element.setContent(coments.getEmail(), "email");
+					break;
+				case "body":
+					element.setContent(coments.getBody(), "body");
+					break;
+				default:
+					break;
+				}
+
+			}
+			resourceResolver.commit();
+		} catch (ContentFragmentException e) {
+		} catch (PersistenceException e) {
+			e.printStackTrace();
+		}
+
+	}
+	public String deleteContentFragment(String postid) {
+		try (ResourceResolver resourceResolver = loginAsServiceUser()) {
+			String foldername = String.valueOf(((Integer.parseInt(postid)) / 100) + 1);
+			String path="/content/dam/BlissProject/comments/folder-" + foldername + "/" + postid;
+			Session session = resourceResolver.adaptTo(Session.class);
+			session.removeItem(path);
+			session.save();
+			return "content fragment"+postid+" is deleted";
+		} catch (Exception e) {
+			return "Error : "+e.getMessage();
+			}
+	}
+}
+
+
+// Coments class 
+package com.BlissProject.core.Entity;
+
+public class Coments {
+	private String postId;
+	private String id;
+	private String name;
+	private String email;
+	private String body;
+	public Coments() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+	@Override
+	public String toString() {
+		return "Coments [postId=" + postId + ", id=" + id + ", name=" + name + ", email=" + email + ", body=" + body
+				+ "]";
+	}
+	public Coments(String postId, String id, String name, String email, String body) {
+		super();
+		this.postId = postId;
+		this.id = id;
+		this.name = name;
+		this.email = email;
+		this.body = body;
+	}
+	public String getPostId() {
+		return postId;
+	}
+	public String getId() {
+		return id;
+	}
+	public String getName() {
+		return name;
+	}
+	public String getEmail() {
+		return email;
+	}
+	public String getBody() {
+		return body;
+	}
+}
+

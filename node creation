@@ -1,0 +1,22 @@
+@Override
+	protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws ServletException, IOException {
+	    try {
+	    	ResourceResolver resourceResolver=loginAsServiceUser();
+	    	
+	 	    session=resourceResolver.adaptTo(Session.class);
+	        String parentNodePath = request.getParameter("path");
+	        String nodeName = request.getParameter("nodename"); 
+	        Node parentNode = resourceResolver.getResource(parentNodePath).adaptTo(Node.class);
+	        Node newNode = parentNode.addNode(nodeName,"nt:unstructured");
+	        newNode.setProperty("name", request.getParameter("name"));
+	        resourceResolver.commit();
+	        session.save();
+	    } catch (LoginException e) {
+	       e.printStackTrace();
+	    } catch (RepositoryException e) {
+	        e.printStackTrace();
+	    } catch (org.apache.sling.api.resource.LoginException e) {
+			e.printStackTrace();
+		} 
+	    
+	}

@@ -1,0 +1,33 @@
+    @Override
+    protected void doGet(SlingHttpServletRequest request,
+                         SlingHttpServletResponse response) {
+        try {
+            ResourceResolver resourceResolver = request.getResourceResolver();
+            List<KeyValue> dropDownList = new ArrayList<>();                
+                    dropDownList.add(new KeyValue("India", "IND"));
+                    dropDownList.add(new KeyValue("America", "US"));
+                    dropDownList.add(new KeyValue("Afghanistan", "AF"));
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+				DataSource ds = new SimpleDataSource(new TransformIterator(dropDownList.iterator(), input -> {
+                    KeyValue keyValue = (KeyValue) input;
+                    ValueMap vm = new ValueMapDecorator(new HashMap<>());
+                    vm.put("value", keyValue.key);
+                    vm.put("text", keyValue.value);
+                    return new ValueMapResource(resourceResolver, new ResourceMetadata(), JcrConstants.NT_UNSTRUCTURED, vm);
+                }));
+
+                request.setAttribute(DataSource.class.getName(), ds);
+
+        } catch (Exception e) {
+            LOGGER.error("Error in Get Drop Down Values2", e);
+        }
+    }
+
+    private class KeyValue { 
+        private String key;        
+        private String value;      
+        private KeyValue(final String newKey, final String newValue) {
+            this.key = newKey;
+            this.value = newValue;
+        }
+    }

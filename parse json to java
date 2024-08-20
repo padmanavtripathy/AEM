@@ -1,0 +1,57 @@
+package com.BlissProject.core.servlets;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.jcr.LoginException;
+import javax.lang.model.util.Elements;
+import javax.servlet.Servlet;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.servlets.HttpConstants;
+import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
+import com.BlissProject.core.Entity.Coments;
+import com.adobe.cq.dam.cfm.ContentElement;
+import com.adobe.cq.dam.cfm.ContentFragment;
+import com.adobe.cq.dam.cfm.ContentFragmentException;
+import com.adobe.cq.dam.cfm.FragmentTemplate;
+public List<Coments> parseData() {
+		String apiUrl = "https://jsonplaceholder.typicode.com/comments";
+		List<Coments> coments = new ArrayList<>();
+		HttpClient httpClient = HttpClientBuilder.create().build();
+		HttpGet httpGet = new HttpGet(apiUrl);
+		try {
+			HttpResponse response = httpClient.execute(httpGet);
+			String responseBody = EntityUtils.toString(response.getEntity());
+			JSONArray array = new JSONArray(responseBody);
+
+			for (int i = 0; i < array.length(); i++) {
+				JSONObject object = array.getJSONObject(i);
+				coments.add(new Coments(object.get("postId").toString(), object.get("id").toString(),
+						object.get("name").toString(), object.get("email").toString(), object.get("body").toString()));
+			}
+		} catch (IOException | JSONException e) {
+			e.printStackTrace();
+		}
+		return coments;
+	}
